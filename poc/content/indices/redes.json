@@ -1,0 +1,30 @@
+{
+  "assunto": "redes",
+  "resumo": "2 documento(s) sobre redes.",
+  "niveis": {
+    "iniciante": [
+      {
+        "id": "redes/introducao-a-redes",
+        "path": "docs/redes/introducao-a-redes.md",
+        "titulo": "Introdução a Redes",
+        "resumo": "Conceitos básicos de redes de computadores, endereços IP e a função de roteadores e switches.",
+        "nivel": "iniciante"
+      }
+    ],
+    "intermediario": [
+      {
+        "id": "redes/modelo-osi",
+        "path": "docs/redes/modelo-osi.md",
+        "titulo": "O Modelo OSI",
+        "resumo": "As sete camadas do modelo OSI e o papel de cada uma na comunicação em rede.",
+        "nivel": "intermediario"
+      }
+    ],
+    "avancado": []
+  },
+  "relacionados": [
+    "seguranca",
+    "seguranca-digital",
+    "servidor-dns"
+  ]
+}

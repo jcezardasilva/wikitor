@@ -1,0 +1,22 @@
+{
+  "assunto": "servidor-dns",
+  "resumo": "1 documento(s) sobre servidor-dns.",
+  "niveis": {
+    "iniciante": [],
+    "intermediario": [
+      {
+        "id": "servidor-dns/configurando-um-servidor-dns-com-bind9-no-linux",
+        "path": "docs/servidor-dns/configurando-um-servidor-dns-com-bind9-no-linux.md",
+        "titulo": "Configurando um Servidor DNS com BIND9 no Linux",
+        "resumo": "O BIND9 no Linux é configurado instalando o pacote, definindo zonas de domínio e criando arquivos de zona para gerenciar a tradução de nomes para IPs.",
+        "nivel": "intermediario"
+      }
+    ],
+    "avancado": []
+  },
+  "relacionados": [
+    "redes",
+    "seguranca",
+    "seguranca-digital"
+  ]
+}

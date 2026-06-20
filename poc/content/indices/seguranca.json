@@ -1,0 +1,30 @@
+{
+  "assunto": "seguranca",
+  "resumo": "2 documento(s) sobre seguranca.",
+  "niveis": {
+    "iniciante": [
+      {
+        "id": "seguranca/boas-praticas-de-senhas",
+        "path": "docs/seguranca/boas-praticas-de-senhas.md",
+        "titulo": "Boas Práticas de Senhas",
+        "resumo": "Recomendações para criar e gerenciar senhas fortes, incluindo MFA e gerenciadores de senha.",
+        "nivel": "iniciante"
+      }
+    ],
+    "intermediario": [
+      {
+        "id": "seguranca/firewalls",
+        "path": "docs/seguranca/firewalls.md",
+        "titulo": "Firewalls",
+        "resumo": "Um firewall filtra o tráfego de rede com base em regras, permitindo ou bloqueando pacotes de dados.",
+        "nivel": "intermediario"
+      }
+    ],
+    "avancado": []
+  },
+  "relacionados": [
+    "redes",
+    "seguranca-digital",
+    "servidor-dns"
+  ]
+}

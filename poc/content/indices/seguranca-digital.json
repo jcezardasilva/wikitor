@@ -1,0 +1,22 @@
+{
+  "assunto": "seguranca-digital",
+  "resumo": "1 documento(s) sobre seguranca-digital.",
+  "niveis": {
+    "iniciante": [
+      {
+        "id": "seguranca-digital/boas-praticas-de-senhas-e-autenticacao-multifator-mfa",
+        "path": "docs/seguranca-digital/boas-praticas-de-senhas-e-autenticacao-multifator-mfa.md",
+        "titulo": "Boas Práticas de Senhas e Autenticação Multifator (MFA)",
+        "resumo": "Para segurança, utilize senhas fortes e Autenticação Multifator (MFA), recomendando o Microsoft Authenticator para reforçar a proteção de contas corporativas.",
+        "nivel": "iniciante"
+      }
+    ],
+    "intermediario": [],
+    "avancado": []
+  },
+  "relacionados": [
+    "redes",
+    "seguranca",
+    "servidor-dns"
+  ]
+}

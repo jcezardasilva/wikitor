@@ -1,0 +1,30 @@
+"""Configuração da POC. Tudo via variáveis de ambiente, com defaults sensatos."""
+import os
+from pathlib import Path
+
+# Raiz do repositório: .../wikitor
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# Onde os markdown e índices vivem (sem Azure — sistema de arquivos local).
+CONTENT_ROOT = Path(os.getenv("Wikitor_CONTENT_ROOT", _REPO_ROOT / "poc" / "content"))
+DOCS_DIR = CONTENT_ROOT / "docs"
+INDICES_DIR = CONTENT_ROOT / "indices"
+
+# Front-end estático servido pelo próprio FastAPI.
+WEB_DIR = Path(os.getenv("Wikitor_WEB_DIR", _REPO_ROOT / "poc" / "web"))
+
+# Skills (instruções estilo SKILL.md usadas como system prompt do LLM).
+SKILLS_DIR = Path(os.getenv("Wikitor_SKILLS_DIR", _REPO_ROOT / "poc" / "backend" / "skills"))
+
+# Ollama (provedor LLM local).
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:e2b")
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
+
+# Níveis de maturidade válidos (dimensão da cadeia de índices).
+NIVEIS = ["iniciante", "intermediario", "avancado"]
+
+
+def ensure_dirs() -> None:
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    INDICES_DIR.mkdir(parents=True, exist_ok=True)

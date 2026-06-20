@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Env / secrets
+.env
+.env.*
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# OS
+Thumbs.db
+.DS_Store
