@@ -9,6 +9,8 @@ que responde perguntas (citando fontes) e conduz a autoria de novos documentos.
 > AKS, MCP-server, controle de acesso) está documentado em `docs/design/` e ainda não foi
 > implementado.
 
+![Demonstração do Wikitor: perguntar ao assistente e navegar pelos documentos](docs/wikitor-demo.gif)
+
 ## O que é
 
 - **Conteúdo:** cada documento é um arquivo `.md` com frontmatter (assunto, nível, título,
