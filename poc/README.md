@@ -7,19 +7,32 @@ Demonstra os processos básicos: **navegar/consultar**, **atualizar manualmente*
 ## Pré-requisitos
 
 - Python 3.11+
+- [uv](https://docs.astral.sh/uv/) para gerenciar dependências
 - Ollama rodando em `http://localhost:11434` com um modelo (padrão: `gemma4:e2b`)
 
 ## Como rodar
 
 ```powershell
 cd poc\backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+make install   # uv sync (deps de prod + dev)
+make run       # uvicorn app.main:app --reload --port 8000
 ```
 
 Abra http://localhost:8000
+
+### Comandos de desenvolvimento (`poc/backend/Makefile`)
+
+| Comando | O que faz |
+| --- | --- |
+| `make install` / `make sync` | Instala/sincroniza dependências via `uv sync` |
+| `make run` | Sobe o servidor com reload |
+| `make lint` | Verifica sintaxe e estilo com `ruff` |
+| `make lint-fix` | Aplica as correções automáticas do `ruff` |
+| `make format` | Formata o código com `ruff format` |
+| `make complexity` | Analisa complexidade ciclomática com `complexipy` |
+| `make test` | Roda os testes unitários com `pytest` |
+| `make check` | Roda lint + complexidade + testes (gate local) |
+| `make clean` | Remove caches (`__pycache__`, `.ruff_cache`, `.pytest_cache`) |
 
 ### Variáveis de ambiente (opcionais)
 

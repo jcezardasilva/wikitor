@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -55,16 +54,16 @@ class SaveDocRequest(BaseModel):
     titulo: str
     assunto: str
     conteudo: str
-    nivel: Optional[str] = None      # se ausente, IA sugere
-    id: Optional[str] = None         # se presente, atualiza; senão cria
+    nivel: str | None = None      # se ausente, IA sugere
+    id: str | None = None         # se presente, atualiza; senão cria
     gerar_resumo: bool = True        # usa LLM p/ gerar resumo no save
 
 
 class AIGenerateRequest(BaseModel):
     tema: str
-    assunto: Optional[str] = None
+    assunto: str | None = None
     nivel: str = "iniciante"
-    instrucoes: Optional[str] = None
+    instrucoes: str | None = None
 
 
 class AIAskRequest(BaseModel):
@@ -78,10 +77,10 @@ class ChatMessage(BaseModel):
 
 class AuthorChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(default_factory=list)
-    contexto_doc: Optional[str] = None   # markdown atual, se for edição
+    contexto_doc: str | None = None   # markdown atual, se for edição
 
 
 class AssistantRequest(BaseModel):
     messages: list[ChatMessage] = Field(default_factory=list)
-    contexto_doc: Optional[str] = None   # markdown atual, se editando um doc existente
-    doc_id: Optional[str] = None         # id do doc em edição (para atualizar o mesmo arquivo)
+    contexto_doc: str | None = None   # markdown atual, se editando um doc existente
+    doc_id: str | None = None         # id do doc em edição (para atualizar o mesmo arquivo)
