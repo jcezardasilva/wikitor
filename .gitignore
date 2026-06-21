@@ -16,6 +16,9 @@ __pycache__/
 # Playwright MCP artifacts
 .playwright-mcp/
 
+# Wikitor — lixeira (dados de runtime)
+poc/content/trash/
+
 # OS
 Thumbs.db
 .DS_Store

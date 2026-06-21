@@ -1,14 +1,14 @@
 {
-  "assunto": "wikitor",
-  "resumo": "1 documento(s) sobre wikitor.",
+  "assunto": "modelo-osi",
+  "resumo": "1 documento(s) sobre modelo-osi.",
   "niveis": {
     "iniciante": [],
     "intermediario": [
       {
         "id": "redes/modelo-osi",
         "path": "docs/redes/modelo-osi.md",
-        "titulo": "Boas Práticas de Desenvolvimento de Software",
-        "resumo": "Boas práticas de software focam em encapsulamento, controle de acesso a dados e nomenclatura clara para garantir código legível, seguro e fácil de manter.",
+        "titulo": "Modelo OSI",
+        "resumo": "Boas práticas de desenvolvimento focam em encapsulamento, controle de acesso a dados e nomenclatura clara para garantir código legível, seguro e fácil de manter.",
         "nivel": "intermediario"
       }
     ],

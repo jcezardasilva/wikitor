@@ -4,16 +4,18 @@ import { AssistView } from './components/AssistView';
 import { BrowseView } from './components/BrowseView';
 import { EditView } from './components/EditView';
 import { Sidebar } from './components/Sidebar';
+import { TrashView } from './components/TrashView';
 import { useAssistant } from './hooks/useAssistant';
 import { useWikiIndex } from './hooks/useWikiIndex';
 import type { WikiDocument } from './types';
 
-type View = 'assist' | 'browse' | 'edit';
+type View = 'assist' | 'browse' | 'edit' | 'trash';
 
 const TABS: { key: View; label: string }[] = [
   { key: 'assist', label: 'Assistente IA' },
   { key: 'browse', label: 'Navegar' },
   { key: 'edit', label: 'Editar' },
+  { key: 'trash', label: 'Lixeira' },
 ];
 
 export function App() {
@@ -37,7 +39,7 @@ export function App() {
   }, []);
 
   const editWithAI = useCallback((doc: WikiDocument) => {
-    assistant.seedDoc(doc);
+    assistant.addDocNode(doc);
     setView('assist');
   }, [assistant]);
 
@@ -45,6 +47,11 @@ export function App() {
     await index.reload();
     await openDoc(doc.id);
   }, [index, openDoc]);
+
+  const onRemoved = useCallback(async () => {
+    setBrowseDoc(null);
+    await index.reload();
+  }, [index]);
 
   return (
     <>
@@ -74,12 +81,23 @@ export function App() {
         />
         <section className="content">
           {view === 'assist' && (
-            <AssistView items={assistant.items} onSend={assistant.send} onOpenDoc={openDoc} />
+            <AssistView
+              items={assistant.items}
+              tree={assistant.tree}
+              onSend={assistant.send}
+              onOpenDoc={openDoc}
+            />
           )}
           {view === 'browse' && (
-            <BrowseView doc={browseDoc} onEdit={editDoc} onEditWithAI={editWithAI} />
+            <BrowseView
+              doc={browseDoc}
+              onEdit={editDoc}
+              onEditWithAI={editWithAI}
+              onRemoved={onRemoved}
+            />
           )}
           {view === 'edit' && <EditView seed={editSeed} onSaved={onSaved} />}
+          {view === 'trash' && <TrashView onChanged={index.reload} />}
         </section>
       </main>
     </>

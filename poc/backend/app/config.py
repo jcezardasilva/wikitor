@@ -9,6 +9,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 CONTENT_ROOT = Path(os.getenv("Wikitor_CONTENT_ROOT", _REPO_ROOT / "poc" / "content"))
 DOCS_DIR = CONTENT_ROOT / "docs"
 INDICES_DIR = CONTENT_ROOT / "indices"
+# Lixeira: "excluir" move o .md para cá; só após N dias a exclusão é definitiva.
+TRASH_DIR = CONTENT_ROOT / "trash"
+TRASH_RETENTION_DAYS = int(os.getenv("Wikitor_TRASH_RETENTION_DAYS", "30"))
 
 # Front-end React (Vite) servido pelo próprio FastAPI a partir do build de produção.
 # Em dev, use `npm run dev` no webapp (proxy /api -> :8000); em prod, `npm run build`.
@@ -29,3 +32,4 @@ NIVEIS = ["iniciante", "intermediario", "avancado"]
 def ensure_dirs() -> None:
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     INDICES_DIR.mkdir(parents=True, exist_ok=True)
+    TRASH_DIR.mkdir(parents=True, exist_ok=True)

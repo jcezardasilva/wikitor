@@ -2,9 +2,14 @@
 import type {
   AssistantRequest,
   AssistantResponse,
+  AssistantTreeRequest,
+  AssistantTreeResponse,
+  CommitResponse,
   MasterIndex,
   SaveDocRequest,
+  SavePlan,
   SubjectIndex,
+  TrashList,
   WikiDocument,
 } from './types';
 
@@ -33,4 +38,18 @@ export const api = {
   saveDocument: (req: SaveDocRequest) => jsonPost<WikiDocument>('/api/docs', req),
   assistant: (req: AssistantRequest) =>
     jsonPost<AssistantResponse>('/api/ai/assistant', req),
+  assistantTree: (req: AssistantTreeRequest) =>
+    jsonPost<AssistantTreeResponse>('/api/ai/assistant', req),
+  commit: (plano: SavePlan) =>
+    jsonPost<CommitResponse>('/api/docs/commit', { plano }),
+  archiveDocument: (id: string) =>
+    request<{ ok: boolean }>(`/api/docs/${id}/archive`, { method: 'POST' }),
+  // Excluir = mover para a lixeira (recuperável).
+  trashDocument: (id: string) =>
+    request<{ ok: boolean }>(`/api/docs/${id}/trash`, { method: 'POST' }),
+  listTrash: () => request<TrashList>('/api/trash'),
+  restoreFromTrash: (id: string) =>
+    request<{ ok: boolean }>(`/api/trash/${id}/restore`, { method: 'POST' }),
+  purgeDocument: (id: string) =>
+    request<{ ok: boolean }>(`/api/trash/${id}`, { method: 'DELETE' }),
 };

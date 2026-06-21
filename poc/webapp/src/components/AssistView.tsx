@@ -1,10 +1,12 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import type { ChatItem } from '../hooks/useAssistant';
-import type { SourceRef } from '../types';
+import type { EditNode, SourceRef } from '../types';
+import { EditTree } from './EditTree';
 import { Markdown } from './Markdown';
 
 interface AssistViewProps {
   items: ChatItem[];
+  tree: EditNode[];
   onSend: (texto: string) => void;
   onOpenDoc: (id: string) => void;
 }
@@ -37,7 +39,7 @@ function Message({ item, onOpenDoc }: { item: ChatItem; onOpenDoc: (id: string) 
 
 const MAX_TEXTAREA_PX = 200;
 
-export function AssistView({ items, onSend, onOpenDoc }: AssistViewProps) {
+export function AssistView({ items, tree, onSend, onOpenDoc }: AssistViewProps) {
   const [text, setText] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -86,6 +88,7 @@ export function AssistView({ items, onSend, onOpenDoc }: AssistViewProps) {
           items.map((it) => <Message key={it.id} item={it} onOpenDoc={onOpenDoc} />)
         )}
       </div>
+      <EditTree tree={tree} />
       <div className="chat-inputbar">
         <textarea
           ref={inputRef}

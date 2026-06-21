@@ -1,13 +1,14 @@
 ---
 id: redes/modelo-osi
-titulo: Boas Práticas de Desenvolvimento de Software
-assunto: wikitor
+titulo: Modelo OSI
+assunto: modelo-osi
 nivel: intermediario
-resumo: Boas práticas de software focam em encapsulamento, controle de acesso a dados
-  e nomenclatura clara para garantir código legível, seguro e fácil de manter.
+resumo: Boas práticas de desenvolvimento focam em encapsulamento, controle de acesso
+  a dados e nomenclatura clara para garantir código legível, seguro e fácil de manter.
 status: publicado
 referencias: []
 atualizado_em: '2026-06-20'
+excluido_em: null
 ---
 
 # Boas Práticas de Desenvolvimento de Software

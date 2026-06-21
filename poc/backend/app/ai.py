@@ -312,28 +312,85 @@ async def _detectar_novo_doc(messages: list[dict], no_foco: EditNodeIn | None) -
         return None
 
 
-async def _detectar_drift(no: EditNodeIn) -> str | None:
-    """Sinaliza deriva de assunto durante a edição (decisão B)."""
-    if not no.conteudo.strip():
+async def _ultimo_user(messages: list[dict]) -> str:
+    return next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+
+
+_REMOCAO_SYSTEM = (
+    "Classifique se a última mensagem do usuário pede para REMOVER ou ARQUIVAR um documento. "
+    'Responda APENAS JSON: {"acao": "remover|arquivar|nenhum"}. '
+    "remover = excluir definitivamente; arquivar = tornar obsoleto/tirar de circulação; "
+    "nenhum = não é pedido de remoção."
+)
+
+
+async def _detectar_remocao(messages: list[dict], no_foco: EditNodeIn | None) -> str | None:
+    if no_foco is None or not no_foco.doc_id:
         return None
-    assunto_inferido, _ = await _inferir_meta(no.titulo, no.conteudo)
+    ultimo = await _ultimo_user(messages)
+    try:
+        data = await llm.generate_json(ultimo, system=_REMOCAO_SYSTEM)
+        acao = str(data.get("acao", "")).strip().lower()
+    except llm.LLMError:
+        return None
+    return acao if acao in {"remover", "arquivar"} else None
+
+
+def _plano_remocao(no: EditNodeIn, acao: str) -> dict:
+    item = SavePlanItem(
+        node_id=no.node_id, assunto=no.assunto, doc_id=no.doc_id,
+        arquivo=f"docs/{no.doc_id}.md", titulo=no.titulo, nivel=no.nivel,
+        tipo=acao, redirecionado=False, conteudo="",
+    )
+    plano = SavePlan(itens=[item])
+    verbo = "remover (excluir)" if acao == "remover" else "arquivar"
+    return {
+        "acao": "plano_save",
+        "resposta": f"Vou {verbo}: docs/{no.doc_id}.md\n\nConfirma?",
+        "plano": plano.model_dump(),
+    }
+
+
+async def _detectar_drift(messages: list[dict], no: EditNodeIn | None) -> str | None:
+    """Sinaliza deriva de assunto durante a edição, a partir da conversa (decisão B)."""
+    if no is None or not no.assunto:
+        return None
+    ultimo = await _ultimo_user(messages)
+    if not ultimo.strip():
+        return None
+    assunto_inferido, _ = await _inferir_meta(no.titulo or "documento", ultimo)
     return assunto_inferido if assunto_inferido and assunto_inferido != no.assunto else None
 
 
-async def _item_plano(no: EditNodeIn) -> SavePlanItem:
-    assunto_inferido, nivel = await _inferir_meta(no.titulo, no.conteudo)
-    assunto = assunto_inferido or no.assunto
-    final_id, tipo, redirecionado = storage.affinity_target(assunto, no.doc_id, no.titulo)
+async def _autorar_em_novo(messages: list[dict]) -> dict:
+    """Árvore vazia / sem foco: não há arquivo a proteger, então cria um nó de trabalho."""
+    resposta = await coautoria_chat(messages, contexto_doc=None)
+    return {
+        "acao": "novo_no_auto",
+        "resposta": resposta,
+        "sugestao": {"assunto": "", "titulo": "", "nivel": "iniciante"},
+    }
+
+
+async def _item_plano(no: EditNodeIn, messages: list[dict]) -> SavePlanItem:
+    # O conteúdo é sintetizado da conversa por nó (como no fluxo legado), com o texto
+    # atual do nó como contexto; a afinidade então decide o destino.
+    draft = await coautoria_finalizar(messages, contexto_doc=no.conteudo or None)
+    conteudo = draft["conteudo"]
+    titulo = no.titulo or draft["titulo"]
+    assunto_inferido, nivel = await _inferir_meta(titulo, conteudo)
+    assunto = assunto_inferido or no.assunto or "geral"
+    final_id, tipo, redirecionado = storage.affinity_target(assunto, no.doc_id, titulo)
     return SavePlanItem(
         node_id=no.node_id,
         assunto=assunto,
         doc_id=no.doc_id,
         arquivo=f"docs/{final_id}.md",
-        titulo=no.titulo,
+        titulo=titulo,
         nivel=no.nivel or nivel,
         tipo=tipo,
         redirecionado=redirecionado,
-        conteudo=no.conteudo,
+        conteudo=conteudo,
     )
 
 
@@ -348,15 +405,15 @@ def _descreve_plano(plano: SavePlan) -> str:
     return f"Vou gravar:\n{corpo}\n\nConfirma?"
 
 
-async def _propor_plano(arvore: list[EditNodeIn]) -> dict:
-    itens = [await _item_plano(n) for n in _para_plano(arvore)]
+async def _propor_plano(arvore: list[EditNodeIn], messages: list[dict]) -> dict:
+    itens = [await _item_plano(n, messages) for n in _para_plano(arvore)]
     plano = SavePlan(itens=itens)
     return {"acao": "plano_save", "resposta": _descreve_plano(plano), "plano": plano.model_dump()}
 
 
 async def _resolver_confirmacao(messages: list[dict], plano: SavePlan,
                                 arvore: list[EditNodeIn]) -> dict:
-    ultimo = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    ultimo = await _ultimo_user(messages)
     try:
         data = await llm.generate_json(ultimo, system=_CONFIRM_SYSTEM)
         decisao = str(data.get("decisao", "")).strip().lower()
@@ -366,11 +423,11 @@ async def _resolver_confirmacao(messages: list[dict], plano: SavePlan,
         return {"acao": "confirmado", "resposta": "Gravando…", "plano": plano.model_dump()}
     if decisao == "cancelar":
         return {"acao": "cancelado", "resposta": "Ok, não vou gravar."}
-    return await _propor_plano(arvore)  # ajustar: remonta a partir da árvore atual
+    return await _propor_plano(arvore, messages)  # ajustar: remonta da árvore atual
 
 
 async def _resolver_proposta(messages: list[dict]) -> dict:
-    ultimo = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    ultimo = await _ultimo_user(messages)
     try:
         data = await llm.generate_json(ultimo, system=_CONFIRM_SYSTEM)
         decisao = str(data.get("decisao", "")).strip().lower()
@@ -392,13 +449,21 @@ async def assistente_arvore(messages: list[dict], arvore: list[EditNodeIn], foco
 
     intent = await _classificar_intencao(messages)
     if intent == "perguntar":
-        pergunta = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        pergunta = await _ultimo_user(messages)
         res = await perguntar(pergunta)
         return {"acao": "resposta", "resposta": res["resposta"], "fontes": res["fontes"]}
     if intent == "salvar":
-        return await _propor_plano(arvore)
+        return await _propor_plano(arvore, messages)
 
-    sugestao = await _detectar_novo_doc(messages, _no(arvore, foco))
+    no_foco = _no(arvore, foco)
+    if no_foco is None:
+        return await _autorar_em_novo(messages)  # nada a proteger: cria nó de trabalho
+
+    remocao = await _detectar_remocao(messages, no_foco)
+    if remocao:
+        return _plano_remocao(no_foco, remocao)
+
+    sugestao = await _detectar_novo_doc(messages, no_foco)
     if sugestao:
         return {
             "acao": "propor_novo_doc",
@@ -407,10 +472,10 @@ async def assistente_arvore(messages: list[dict], arvore: list[EditNodeIn], foco
         }
 
     alvo = await _rotear_alvo(messages, arvore, foco)
-    no_alvo = _no(arvore, alvo)
-    resposta = await coautoria_chat(messages, contexto_doc=no_alvo.conteudo if no_alvo else None)
-    out = {"acao": "autoria", "alvo": alvo, "resposta": resposta}
-    drift = await _detectar_drift(no_alvo) if no_alvo else None
+    no_alvo = _no(arvore, alvo) or no_foco
+    resposta = await coautoria_chat(messages, contexto_doc=no_alvo.conteudo or None)
+    out = {"acao": "autoria", "alvo": no_alvo.node_id, "resposta": resposta}
+    drift = await _detectar_drift(messages, no_alvo)
     if drift:
-        out["drift"] = {"node_id": alvo, "assunto_sugerido": drift}
+        out["drift"] = {"node_id": no_alvo.node_id, "assunto_sugerido": drift}
     return out

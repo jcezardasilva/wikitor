@@ -75,3 +75,107 @@ export interface AssistantRequest {
   contexto_doc?: string | null;
   doc_id?: string | null;
 }
+
+// ---------- Modo árvore (Fase 1) ----------
+
+export interface NovoDocSugestao {
+  assunto: string;
+  titulo: string;
+  nivel: string;
+}
+
+export interface SavePlanItem {
+  node_id: string;
+  assunto: string;
+  doc_id: string | null;
+  arquivo: string;
+  titulo: string;
+  nivel: string;
+  tipo: 'novo' | 'atualiza' | 'remover' | 'arquivar';
+  redirecionado: boolean;
+  conteudo: string;
+}
+
+export interface SavePlan {
+  itens: SavePlanItem[];
+}
+
+// Nó da árvore de edição no cliente (estado de sessão).
+export interface EditNode {
+  nodeId: string;
+  assunto: string;
+  docId: string | null;
+  titulo: string;
+  nivel: Nivel;
+  conteudo: string;
+  alterado: boolean;
+  emFoco: boolean;
+  driftAssunto?: string;
+}
+
+// Formato enviado ao backend (snake_case).
+export interface EditNodeWire {
+  node_id: string;
+  assunto: string;
+  doc_id: string | null;
+  titulo: string;
+  nivel: string;
+  conteudo: string;
+  alterado: boolean;
+}
+
+export interface AssistantTreeRequest {
+  messages: ChatMessage[];
+  modo: 'arvore';
+  arvore: EditNodeWire[];
+  foco: string | null;
+  plano_pendente: SavePlan | null;
+  proposta_pendente: NovoDocSugestao | null;
+}
+
+export type TreeAcao =
+  | 'resposta'
+  | 'autoria'
+  | 'novo_no_auto'
+  | 'propor_novo_doc'
+  | 'criar_no'
+  | 'plano_save'
+  | 'confirmado'
+  | 'cancelado';
+
+export interface AssistantTreeResponse {
+  acao: TreeAcao;
+  resposta: string;
+  fontes?: SourceRef[];
+  alvo?: string;
+  drift?: { node_id: string; assunto_sugerido: string };
+  sugestao?: NovoDocSugestao;
+  plano?: SavePlan;
+}
+
+export interface SavedRef {
+  node_id: string;
+  id: string;
+  assunto?: string;
+  titulo?: string;
+  tipo?: 'salvo' | 'removido' | 'arquivado' | 'lixeira';
+}
+
+export interface TrashItem {
+  id: string;
+  titulo: string;
+  assunto: string;
+  excluido_em: string | null;
+  dias: number;
+  restante: number;
+  elegivel: boolean;
+}
+
+export interface TrashList {
+  itens: TrashItem[];
+  retencao_dias: number;
+}
+
+export interface CommitResponse {
+  salvos: SavedRef[];
+}

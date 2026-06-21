@@ -84,39 +84,111 @@ async def ai_assistant(req: AssistantRequest):
     fluxo ciente da árvore (propõe plano, nunca grava). Senão, mantém o fluxo legado.
     """
     msgs = [m.model_dump() for m in req.messages]
-    if req.arvore or req.plano_pendente or req.proposta_pendente:
+    if req.modo == "arvore" or req.arvore or req.plano_pendente or req.proposta_pendente:
         return await ai.assistente_arvore(
             msgs, req.arvore, req.foco, req.plano_pendente, req.proposta_pendente
         )
     return await ai.assistente(msgs, contexto_doc=req.contexto_doc, doc_id=req.doc_id)
 
 
+async def _aplicar_item(item) -> dict:
+    """Aplica um item do plano. Tipos: novo/atualiza (grava), remover (apaga), arquivar."""
+    if item.tipo == "remover" and item.doc_id:
+        storage.trash_document(item.doc_id)  # excluir = mover para a lixeira
+        return {"node_id": item.node_id, "id": item.doc_id, "tipo": "lixeira"}
+    if item.tipo == "arquivar" and item.doc_id:
+        storage.set_status(item.doc_id, "arquivado")
+        return {"node_id": item.node_id, "id": item.doc_id, "tipo": "arquivado"}
+
+    # novo/atualiza — guarda de afinidade decide o destino.
+    doc_id, _tipo, _redir = storage.affinity_target(item.assunto, item.doc_id, item.titulo)
+    nivel = item.nivel if item.nivel in config.NIVEIS else "iniciante"
+    resumo = await indexer.gerar_resumo(item.titulo, item.conteudo)
+    doc = Document(
+        id=doc_id, titulo=item.titulo, assunto=storage.slugify(item.assunto),
+        nivel=nivel, resumo=resumo, conteudo=item.conteudo, status="publicado",
+    )
+    storage.write_document(doc)
+    return {"node_id": item.node_id, "id": doc.id, "assunto": doc.assunto,
+            "titulo": doc.titulo, "tipo": "salvo"}
+
+
 @app.post("/api/docs/commit")
 async def commit_plan(req: CommitRequest):
-    """Grava o plano confirmado. Única rota que escreve no modo árvore.
+    """Grava o plano confirmado. Única rota que escreve/remove no modo árvore.
 
     A guarda de afinidade (`storage.affinity_target`) garante que conteúdo do assunto A
     nunca sobrescreve um arquivo sob o assunto B — corrige o bug de sobrescrita.
     """
-    salvos = []
-    for item in req.plano.itens:
-        doc_id, _tipo, _redir = storage.affinity_target(item.assunto, item.doc_id, item.titulo)
-        nivel = item.nivel if item.nivel in config.NIVEIS else "iniciante"
-        resumo = await indexer.gerar_resumo(item.titulo, item.conteudo)
-        doc = Document(
-            id=doc_id,
-            titulo=item.titulo,
-            assunto=storage.slugify(item.assunto),
-            nivel=nivel,
-            resumo=resumo,
-            conteudo=item.conteudo,
-            status="publicado",
-        )
-        storage.write_document(doc)
-        salvos.append({"node_id": item.node_id, "id": doc.id,
-                       "assunto": doc.assunto, "titulo": doc.titulo})
+    salvos = [await _aplicar_item(item) for item in req.plano.itens]
     indexer.rebuild_indices()
     return {"salvos": salvos}
+
+
+# ---------- API: arquivar (soft, em lugar) ----------
+
+@app.post("/api/docs/{doc_id:path}/archive")
+def archive_document(doc_id: str):
+    """Arquiva: sai do índice, mas o arquivo permanece no lugar (reversível)."""
+    if storage.set_status(doc_id, "arquivado") is None:
+        raise HTTPException(404, "Documento não encontrado")
+    indexer.rebuild_indices()
+    return {"ok": True, "arquivado": doc_id}
+
+
+@app.post("/api/docs/{doc_id:path}/restore")
+def restore_archived(doc_id: str):
+    """Restaura um documento arquivado (status volta a 'publicado')."""
+    if storage.set_status(doc_id, "publicado") is None:
+        raise HTTPException(404, "Documento não encontrado")
+    indexer.rebuild_indices()
+    return {"ok": True, "restaurado": doc_id}
+
+
+# ---------- API: lixeira (excluir = mover p/ lixeira; purge só após 30 dias) ----------
+
+@app.post("/api/docs/{doc_id:path}/trash")
+def trash_document_route(doc_id: str):
+    """Excluir = mover para a lixeira (recuperável; purge só após a retenção)."""
+    if storage.trash_document(doc_id) is None:
+        raise HTTPException(404, "Documento não encontrado")
+    indexer.rebuild_indices()
+    return {"ok": True, "lixeira": doc_id}
+
+
+@app.get("/api/trash")
+def list_trash_route():
+    """Lista os documentos na lixeira com os dias restantes até poder excluir de vez."""
+    itens = []
+    for doc in storage.list_trash():
+        dias = storage.dias_na_lixeira(doc)
+        restante = max(0, config.TRASH_RETENTION_DAYS - dias)
+        itens.append({
+            "id": doc.id, "titulo": doc.titulo, "assunto": doc.assunto,
+            "excluido_em": doc.excluido_em, "dias": dias, "restante": restante,
+            "elegivel": restante == 0,
+        })
+    return {"itens": itens, "retencao_dias": config.TRASH_RETENTION_DAYS}
+
+
+@app.post("/api/trash/{doc_id:path}/restore")
+def restore_trash_route(doc_id: str):
+    """Restaura um documento da lixeira de volta ao acervo."""
+    if storage.restore_from_trash(doc_id) is None:
+        raise HTTPException(404, "Documento não encontrado na lixeira")
+    indexer.rebuild_indices()
+    return {"ok": True, "restaurado": doc_id}
+
+
+@app.delete("/api/trash/{doc_id:path}")
+def purge_trash_route(doc_id: str):
+    """Exclusão definitiva. Só permitida após a retenção (30 dias) na lixeira."""
+    resultado = storage.purge_document(doc_id)
+    if resultado == "inexistente":
+        raise HTTPException(404, "Documento não encontrado na lixeira")
+    if resultado == "cedo":
+        raise HTTPException(409, f"Só após {config.TRASH_RETENTION_DAYS} dias na lixeira")
+    return {"ok": True, "excluido": doc_id}
 
 
 @app.get("/api/health")

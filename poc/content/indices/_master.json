@@ -1,6 +1,18 @@
 {
   "assuntos": [
     {
+      "assunto": "desenvolvimento-software",
+      "resumo": "1 documento(s) sobre desenvolvimento-software.",
+      "path": "indices/desenvolvimento-software.json",
+      "total_docs": 1
+    },
+    {
+      "assunto": "modelo-osi",
+      "resumo": "1 documento(s) sobre modelo-osi.",
+      "path": "indices/modelo-osi.json",
+      "total_docs": 1
+    },
+    {
       "assunto": "redes",
       "resumo": "1 documento(s) sobre redes.",
       "path": "indices/redes.json",
@@ -22,12 +34,6 @@
       "assunto": "servidor-dns",
       "resumo": "1 documento(s) sobre servidor-dns.",
       "path": "indices/servidor-dns.json",
-      "total_docs": 1
-    },
-    {
-      "assunto": "wikitor",
-      "resumo": "1 documento(s) sobre wikitor.",
-      "path": "indices/wikitor.json",
       "total_docs": 1
     }
   ]

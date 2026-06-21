@@ -13,9 +13,10 @@ class DocumentMeta(BaseModel):
     assunto: str
     nivel: str = "iniciante"     # iniciante | intermediario | avancado
     resumo: str = ""             # gerado por LLM
-    status: str = "publicado"    # rascunho | publicado
+    status: str = "publicado"    # rascunho | publicado | arquivado | lixeira
     referencias: list[str] = Field(default_factory=list)
     atualizado_em: str = Field(default_factory=lambda: date.today().isoformat())
+    excluido_em: str | None = None   # data de envio à lixeira (None = não está na lixeira)
 
 
 class Document(DocumentMeta):
@@ -118,6 +119,7 @@ class AssistantRequest(BaseModel):
     contexto_doc: str | None = None   # markdown atual, se editando um doc existente (legado)
     doc_id: str | None = None         # id do doc em edição (legado, single-doc)
     # --- modo árvore (Fase 0) ---
+    modo: str | None = None           # "arvore" liga o fluxo ciente da árvore
     arvore: list[EditNodeIn] = Field(default_factory=list)
     foco: str | None = None           # node_id em foco
     plano_pendente: SavePlan | None = None

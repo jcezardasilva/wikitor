@@ -261,4 +261,45 @@ Understanding Lock **confirmado**; decisões 1–7 + A/B aceitas; decision log c
   `assistente_arvore` em `ai.py`, endpoint `POST /api/docs/commit`, e pytest (regressão do
   bug + afinidade + commit). Gate do backend verde (ruff + complexipy + pytest). O fluxo
   legado de `/api/ai/assistant` segue ativo até a Fase 1 ligar o frontend ao modo árvore.
-- **Fase 1 (frontend)** e **Fase 2 (e2e)** — pendentes.
+- **Fase 1 (frontend) — concluída.** Tipos e `api.assistantTree`/`api.commit`; `useAssistant`
+  reescrito ciente da árvore (foco, plano e proposta pendentes, commit no `confirmado`);
+  componente `EditTree` acima do input (grupos por assunto, badges de estado, foco, alerta de
+  deriva); `App.editWithAI` adiciona o doc à árvore. Vitest do fluxo (addDocNode, autoria→
+  alterado, confirmado→commit). Gate do frontend verde (lint + testes + build).
+  - *Nota de integração:* o conteúdo de cada nó é sintetizado da conversa no momento do plano
+    (como no fluxo legado); a árvore exibe identidade/estado, não o texto completo. Árvore vazia
+    + autoria cria um nó de trabalho automaticamente (não há arquivo a proteger).
+- **Fase 2 (e2e)** — pendente: Playwright do golden path (pivot → novo doc → dois arquivos).
+
+### Remoção de artigos (arquivar + excluir)
+
+Adicionada como operação de primeira classe ao lado de adicionar/editar, motivada por
+obsolescência. Decisões: **arquivar** (soft delete reversível — `status='arquivado'`, sai do
+índice mas o arquivo permanece) **e excluir** (hard delete — apaga o `.md`); disponível na
+**aba Navegar** (links "arquivar"/"excluir" com confirmação) **e via Assistente** (entra no
+plano de confirmação como item `tipo: remover|arquivar`).
+
+- Backend: `storage.delete_document`/`set_status`; rotas `DELETE /api/docs/{id}`,
+  `POST /api/docs/{id}/archive`, `POST /api/docs/{id}/restore`; `commit` aplica os tipos
+  `remover`/`arquivar`; `ai.assistente_arvore` detecta o pedido e monta o plano. pytest cobre
+  delete/archive/restore + commit-remover.
+- Frontend: `api.deleteDocument/archiveDocument/restoreDocument`; ações na `BrowseView`;
+  o commit da árvore remove o nó removido/arquivado. Vitest do commit de remoção.
+- **Follow-ups conhecidos:** (1) não há UI para listar/restaurar arquivados (ficam fora do
+  índice); (2) o arquivo órfão do redirect de afinidade ainda não é limpo automaticamente.
+
+### Lixeira com retenção de 30 dias
+
+"Excluir" deixou de ser hard delete imediato: agora **move o arquivo para a lixeira**
+(`content/trash/`), recuperável, e a **exclusão definitiva só é liberada após 30 dias**
+(`config.TRASH_RETENTION_DAYS`). Distinto de "arquivar" (que mantém o arquivo no lugar).
+
+- Backend: `storage.trash_document`/`read_trash`/`list_trash`/`restore_from_trash`/
+  `purge_document` (guarda dos 30 dias via `dias_na_lixeira`); `excluido_em` no frontmatter;
+  rotas `POST /api/docs/{id}/trash`, `GET /api/trash`, `POST /api/trash/{id}/restore`,
+  `DELETE /api/trash/{id}` (409 antes da retenção). O commit do assistente (`tipo: remover`)
+  passou a mover para a lixeira. pytest cobre trash/list/restore/purge (cedo e após retenção).
+- Frontend: aba **Lixeira** (lista com dias restantes, restaurar, e "excluir definitivamente"
+  habilitado só quando elegível); "excluir" na Navegar agora envia para a lixeira.
+- *Nota:* a lixeira é dados de runtime (`poc/content/trash/`, no `.gitignore`). Não há
+  purge automático agendado — a exclusão definitiva é manual (e bloqueada antes dos 30 dias).

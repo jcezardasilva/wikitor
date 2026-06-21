@@ -1,0 +1,24 @@
+{
+  "assunto": "desenvolvimento-software",
+  "resumo": "1 documento(s) sobre desenvolvimento-software.",
+  "niveis": {
+    "iniciante": [],
+    "intermediario": [
+      {
+        "id": "desenvolvimento-software/boas-praticas-de-desenvolvimento-de-software",
+        "path": "docs/desenvolvimento-software/boas-praticas-de-desenvolvimento-de-software.md",
+        "titulo": "Boas Práticas de Desenvolvimento de Software",
+        "resumo": "Boas práticas focam em encapsulamento, nomenclatura clara e arquiteturas como Onion para desenvolver software legível, seguro e fácil de manter.",
+        "nivel": "intermediario"
+      }
+    ],
+    "avancado": []
+  },
+  "relacionados": [
+    "redes",
+    "modelo-osi",
+    "seguranca",
+    "seguranca-digital",
+    "servidor-dns"
+  ]
+}
