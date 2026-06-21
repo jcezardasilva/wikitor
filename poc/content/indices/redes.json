@@ -1,6 +1,6 @@
 {
   "assunto": "redes",
-  "resumo": "2 documento(s) sobre redes.",
+  "resumo": "1 documento(s) sobre redes.",
   "niveis": {
     "iniciante": [
       {
@@ -11,18 +11,11 @@
         "nivel": "iniciante"
       }
     ],
-    "intermediario": [
-      {
-        "id": "redes/modelo-osi",
-        "path": "docs/redes/modelo-osi.md",
-        "titulo": "O Modelo OSI",
-        "resumo": "As sete camadas do modelo OSI e o papel de cada uma na comunicação em rede.",
-        "nivel": "intermediario"
-      }
-    ],
+    "intermediario": [],
     "avancado": []
   },
   "relacionados": [
+    "wikitor",
     "seguranca",
     "seguranca-digital",
     "servidor-dns"

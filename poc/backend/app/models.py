@@ -80,7 +80,49 @@ class AuthorChatRequest(BaseModel):
     contexto_doc: str | None = None   # markdown atual, se for edição
 
 
+class EditNodeIn(BaseModel):
+    """Nó da árvore de edição (estado de sessão do cliente) enviado a cada turno."""
+    node_id: str
+    assunto: str
+    doc_id: str | None = None         # null = documento novo (sem arquivo)
+    titulo: str = ""
+    nivel: str = "iniciante"
+    conteudo: str = ""
+    alterado: bool = False            # cliente marca quando o conteúdo mudou
+
+
+class NovoDocSugestao(BaseModel):
+    assunto: str
+    titulo: str
+    nivel: str = "iniciante"
+
+
+class SavePlanItem(BaseModel):
+    node_id: str
+    assunto: str                      # assunto final (após afinidade)
+    doc_id: str | None = None         # id de origem; o commit re-deriva o destino
+    arquivo: str = ""                 # caminho previsto (exibição) docs/{assunto}/{slug}.md
+    titulo: str
+    nivel: str = "iniciante"
+    tipo: str = "novo"                # novo | atualiza
+    redirecionado: bool = False       # afinidade mudou o destino (A em arquivo de B)
+    conteudo: str = ""                # snapshot do texto a gravar
+
+
+class SavePlan(BaseModel):
+    itens: list[SavePlanItem] = Field(default_factory=list)
+
+
 class AssistantRequest(BaseModel):
     messages: list[ChatMessage] = Field(default_factory=list)
-    contexto_doc: str | None = None   # markdown atual, se editando um doc existente
-    doc_id: str | None = None         # id do doc em edição (para atualizar o mesmo arquivo)
+    contexto_doc: str | None = None   # markdown atual, se editando um doc existente (legado)
+    doc_id: str | None = None         # id do doc em edição (legado, single-doc)
+    # --- modo árvore (Fase 0) ---
+    arvore: list[EditNodeIn] = Field(default_factory=list)
+    foco: str | None = None           # node_id em foco
+    plano_pendente: SavePlan | None = None
+    proposta_pendente: NovoDocSugestao | None = None
+
+
+class CommitRequest(BaseModel):
+    plano: SavePlan

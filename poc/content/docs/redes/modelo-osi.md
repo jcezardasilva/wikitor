@@ -1,26 +1,39 @@
 ---
 id: redes/modelo-osi
-titulo: O Modelo OSI
-assunto: redes
+titulo: Boas Práticas de Desenvolvimento de Software
+assunto: wikitor
 nivel: intermediario
-resumo: As sete camadas do modelo OSI e o papel de cada uma na comunicação em rede.
+resumo: Boas práticas de software focam em encapsulamento, controle de acesso a dados
+  e nomenclatura clara para garantir código legível, seguro e fácil de manter.
 status: publicado
 referencias: []
-atualizado_em: 2026-06-20
+atualizado_em: '2026-06-20'
 ---
 
-# O Modelo OSI
+# Boas Práticas de Desenvolvimento de Software
 
-O **modelo OSI** descreve a comunicação em rede em sete camadas:
+Este guia apresenta algumas boas práticas fundamentais para desenvolvedores iniciantes, focando em como escrever código mais legível, seguro e fácil de manter.
 
-1. Física
-2. Enlace
-3. Rede
-4. Transporte
-5. Sessão
-6. Apresentação
-7. Aplicação
+## 1. Encapsulamento e Testabilidade
 
-Cada camada presta serviços à camada imediatamente superior e consome serviços da inferior.
-Por exemplo, a camada de **Transporte** (TCP/UDP) garante a entrega dos dados produzidos
-pela camada de **Aplicação**.
+O princípio do encapsulamento ajuda a proteger o estado interno do seu código e facilita a manutenção e os testes.
+
+*   **Funções Públicas vs. Privadas:** É mais interessante trabalhar com funções públicas, pois elas são mais fáceis de testar e entender o fluxo de execução. Evite o uso excessivo de funções privadas, a menos que seja estritamente necessário para a arquitetura do sistema.
+
+## 2. Controle de Acesso a Dados
+
+Para evitar a exposição de dados que não devem ser acessíveis a outros módulos, utilize mecanismos de controle de acesso.
+
+*   **Separação de Módulos:** Em vez de expor variáveis diretamente, utilize a passagem de dados entre módulos. Isso garante que o fluxo de informação seja controlado e que o estado interno do seu código seja protegido.
+
+## 3. Nomenclatura Clara
+
+A forma como nomeamos variáveis e funções impacta diretamente a legibilidade do código.
+
+*   **Nomes Significativos:** Os nomes das variáveis devem ser significativos e relacionados ao domínio do problema que estão representando.
+    *   **Ruim:** `a > b`
+    *   **Bom:** `userAge` (em vez de apenas `a`)
+
+---
+
+Posso gerar o documento?

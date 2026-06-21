@@ -69,6 +69,22 @@ def new_doc_id(assunto: str, titulo: str) -> str:
     return doc_id
 
 
+def affinity_target(assunto: str, doc_id: str | None, titulo: str) -> tuple[str, str, bool]:
+    """Resolve o destino de gravação respeitando a afinidade índice↔arquivo.
+
+    Retorna (doc_id_final, tipo, redirecionado). Esta é a guarda contra o bug de
+    sobrescrita: NUNCA devolve um id cujo prefixo de assunto seja diferente de
+    `assunto`. Só atualiza um arquivo existente quando o assunto bate com o prefixo
+    do `doc_id`; caso contrário cria um arquivo novo sob o assunto correto.
+    """
+    assunto = slugify(assunto)
+    prefixo = doc_id.split("/", 1)[0] if doc_id else None
+    if doc_id and prefixo == assunto and _doc_path(doc_id).exists():
+        return doc_id, "atualiza", False
+    redirecionado = bool(doc_id) and prefixo != assunto
+    return new_doc_id(assunto, titulo), "novo", redirecionado
+
+
 # ---- Índices (derivados) ----
 
 def write_index(name: str, data: dict) -> None:

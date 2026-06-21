@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from . import ai, config, indexer, storage
 from .models import (
     AssistantRequest,
+    CommitRequest,
     Document,
     SaveDocRequest,
 )
@@ -77,10 +78,45 @@ async def save_document(req: SaveDocRequest):
 
 @app.post("/api/ai/assistant")
 async def ai_assistant(req: AssistantRequest):
-    """Turno único do assistente. A IA infere a intenção a partir da conversa:
-    responder dúvidas (Q&A com fontes), conduzir a autoria (entrevista) ou salvar o documento."""
+    """Turno único do assistente. A IA infere a intenção a partir da conversa.
+
+    Modo árvore (Fase 0): se `arvore`/`plano_pendente`/`proposta_pendente` vierem, usa o
+    fluxo ciente da árvore (propõe plano, nunca grava). Senão, mantém o fluxo legado.
+    """
     msgs = [m.model_dump() for m in req.messages]
+    if req.arvore or req.plano_pendente or req.proposta_pendente:
+        return await ai.assistente_arvore(
+            msgs, req.arvore, req.foco, req.plano_pendente, req.proposta_pendente
+        )
     return await ai.assistente(msgs, contexto_doc=req.contexto_doc, doc_id=req.doc_id)
+
+
+@app.post("/api/docs/commit")
+async def commit_plan(req: CommitRequest):
+    """Grava o plano confirmado. Única rota que escreve no modo árvore.
+
+    A guarda de afinidade (`storage.affinity_target`) garante que conteúdo do assunto A
+    nunca sobrescreve um arquivo sob o assunto B — corrige o bug de sobrescrita.
+    """
+    salvos = []
+    for item in req.plano.itens:
+        doc_id, _tipo, _redir = storage.affinity_target(item.assunto, item.doc_id, item.titulo)
+        nivel = item.nivel if item.nivel in config.NIVEIS else "iniciante"
+        resumo = await indexer.gerar_resumo(item.titulo, item.conteudo)
+        doc = Document(
+            id=doc_id,
+            titulo=item.titulo,
+            assunto=storage.slugify(item.assunto),
+            nivel=nivel,
+            resumo=resumo,
+            conteudo=item.conteudo,
+            status="publicado",
+        )
+        storage.write_document(doc)
+        salvos.append({"node_id": item.node_id, "id": doc.id,
+                       "assunto": doc.assunto, "titulo": doc.titulo})
+    indexer.rebuild_indices()
+    return {"salvos": salvos}
 
 
 @app.get("/api/health")
@@ -88,11 +124,13 @@ def health():
     return {"ok": True, "model": config.OLLAMA_MODEL, "content": str(config.CONTENT_ROOT)}
 
 
-# ---------- Front-end estático ----------
+# ---------- Front-end React (build de produção do Vite) ----------
+# Servido só se `poc/webapp/dist` existir (rode `npm run build` no webapp).
+# As rotas /api acima têm precedência; o mount em "/" cobre index.html + assets.
 
 if config.WEB_DIR.exists():
     @app.get("/")
     def root():
         return FileResponse(config.WEB_DIR / "index.html")
 
-    app.mount("/", StaticFiles(directory=str(config.WEB_DIR)), name="web")
+    app.mount("/", StaticFiles(directory=str(config.WEB_DIR), html=True), name="web")

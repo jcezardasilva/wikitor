@@ -1,0 +1,23 @@
+{
+  "assunto": "wikitor",
+  "resumo": "1 documento(s) sobre wikitor.",
+  "niveis": {
+    "iniciante": [],
+    "intermediario": [
+      {
+        "id": "redes/modelo-osi",
+        "path": "docs/redes/modelo-osi.md",
+        "titulo": "Boas Práticas de Desenvolvimento de Software",
+        "resumo": "Boas práticas de software focam em encapsulamento, controle de acesso a dados e nomenclatura clara para garantir código legível, seguro e fácil de manter.",
+        "nivel": "intermediario"
+      }
+    ],
+    "avancado": []
+  },
+  "relacionados": [
+    "redes",
+    "seguranca",
+    "seguranca-digital",
+    "servidor-dns"
+  ]
+}

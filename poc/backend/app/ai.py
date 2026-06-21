@@ -6,7 +6,7 @@ escolhe os documentos relevantes e responde com base no markdown completo, citan
 from __future__ import annotations
 
 from . import config, frontmatter, indexer, llm, storage
-from .models import Document
+from .models import Document, EditNodeIn, SavePlan, SavePlanItem
 
 _GEN_SYSTEM = (
     "Você é um redator técnico que escreve artigos de wiki em português do Brasil, "
@@ -57,7 +57,8 @@ async def coautoria_chat(messages: list[dict], contexto_doc: str | None = None) 
     """Um turno da entrevista guiada pelo SKILL.md. O cliente mantém o histórico."""
     if not messages:
         # primeira interação: deixa o modelo iniciar a entrevista
-        messages = [{"role": "user", "content": "Quero criar/editar um documento. Comece a entrevista."}]
+        inicio = "Quero criar/editar um documento. Comece a entrevista."
+        messages = [{"role": "user", "content": inicio}]
     return await llm.chat(messages, system=_coautoria_system(contexto_doc))
 
 
@@ -66,7 +67,8 @@ async def coautoria_finalizar(messages: list[dict], contexto_doc: str | None = N
     instrucao = (
         "Com base em TODA a conversa acima, escreva agora o documento final em markdown. "
         "Comece com um título na primeira linha ('# Título'). Use seções, listas e exemplos "
-        "quando fizer sentido. Não inclua comentários fora do documento. Responda apenas com o markdown."
+        "quando fizer sentido. Não inclua comentários fora do documento. "
+        "Responda apenas com o markdown."
     )
     msgs = list(messages) + [{"role": "user", "content": instrucao}]
     conteudo = (await llm.chat(msgs, system=_coautoria_system(contexto_doc))).strip()
@@ -234,3 +236,181 @@ async def assistente(messages: list[dict], contexto_doc: str | None = None,
 
     resposta = await coautoria_chat(messages, contexto_doc=contexto_doc)
     return {"acao": "autoria", "resposta": resposta}
+
+
+# ---------- Assistente ciente da árvore de edição (Fase 0) ----------
+
+_TARGET_SYSTEM = (
+    "Você escolhe a qual documento em edição a última mensagem do usuário se aplica. "
+    "Receberá a lista de documentos (node_id, assunto, titulo). "
+    'Responda APENAS JSON: {"node_id": "<id>"} com o mais provável, ou {"node_id": null}.'
+)
+
+_NEWDOC_SYSTEM = (
+    "Dado o documento em foco e a última mensagem do usuário, decida se o pedido é sobre ESTE "
+    "documento ou introduz um documento/assunto NOVO. Responda APENAS JSON: "
+    '{"novo": true|false, "assunto": "<slug 1-2 palavras>", "titulo": "<titulo>", '
+    '"nivel": "iniciante|intermediario|avancado"}.'
+)
+
+_CONFIRM_SYSTEM = (
+    "O usuário recebeu um plano de gravação e respondeu. Classifique a resposta. "
+    'Responda APENAS JSON: {"decisao": "confirmar|ajustar|cancelar"}. '
+    "confirmar = aceitou gravar; cancelar = não quer gravar; ajustar = quer mudar o plano."
+)
+
+
+def _no(arvore: list[EditNodeIn], node_id: str | None) -> EditNodeIn | None:
+    return next((n for n in arvore if n.node_id == node_id), None)
+
+
+def _para_plano(arvore: list[EditNodeIn]) -> list[EditNodeIn]:
+    """Só os nós que mudaram: alterados, ou novos (sem doc_id) com conteúdo."""
+    return [n for n in arvore if n.alterado or (n.doc_id is None and n.conteudo.strip())]
+
+
+async def _rotear_alvo(
+    messages: list[dict], arvore: list[EditNodeIn], foco: str | None
+) -> str | None:
+    if not arvore:
+        return None
+    if len(arvore) == 1:
+        return arvore[0].node_id
+    catalogo = "\n".join(f"- node_id={n.node_id} | [{n.assunto}] {n.titulo}" for n in arvore)
+    ultimo = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    try:
+        data = await llm.generate_json(
+            f"Documentos:\n{catalogo}\n\nMensagem: {ultimo}", system=_TARGET_SYSTEM
+        )
+        nid = data.get("node_id")
+        if any(n.node_id == nid for n in arvore):
+            return nid
+    except llm.LLMError:
+        pass
+    return foco or arvore[0].node_id
+
+
+async def _detectar_novo_doc(messages: list[dict], no_foco: EditNodeIn | None) -> dict | None:
+    if no_foco is None:
+        return None
+    ultimo = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    try:
+        data = await llm.generate_json(
+            f"Documento em foco: assunto={no_foco.assunto}, titulo={no_foco.titulo}\n"
+            f"Mensagem do usuário: {ultimo}",
+            system=_NEWDOC_SYSTEM,
+        )
+        if not data.get("novo"):
+            return None
+        nivel = data.get("nivel") if data.get("nivel") in config.NIVEIS else "iniciante"
+        return {
+            "assunto": storage.slugify(str(data.get("assunto") or no_foco.assunto)),
+            "titulo": str(data.get("titulo") or "Novo documento"),
+            "nivel": nivel,
+        }
+    except llm.LLMError:
+        return None
+
+
+async def _detectar_drift(no: EditNodeIn) -> str | None:
+    """Sinaliza deriva de assunto durante a edição (decisão B)."""
+    if not no.conteudo.strip():
+        return None
+    assunto_inferido, _ = await _inferir_meta(no.titulo, no.conteudo)
+    return assunto_inferido if assunto_inferido and assunto_inferido != no.assunto else None
+
+
+async def _item_plano(no: EditNodeIn) -> SavePlanItem:
+    assunto_inferido, nivel = await _inferir_meta(no.titulo, no.conteudo)
+    assunto = assunto_inferido or no.assunto
+    final_id, tipo, redirecionado = storage.affinity_target(assunto, no.doc_id, no.titulo)
+    return SavePlanItem(
+        node_id=no.node_id,
+        assunto=assunto,
+        doc_id=no.doc_id,
+        arquivo=f"docs/{final_id}.md",
+        titulo=no.titulo,
+        nivel=no.nivel or nivel,
+        tipo=tipo,
+        redirecionado=redirecionado,
+        conteudo=no.conteudo,
+    )
+
+
+def _descreve_plano(plano: SavePlan) -> str:
+    if not plano.itens:
+        return "Não há alterações para gravar."
+    linhas = []
+    for it in plano.itens:
+        marca = " (redirecionado p/ afinidade)" if it.redirecionado else ""
+        linhas.append(f"- {it.arquivo} — {it.tipo}{marca}")
+    corpo = "\n".join(linhas)
+    return f"Vou gravar:\n{corpo}\n\nConfirma?"
+
+
+async def _propor_plano(arvore: list[EditNodeIn]) -> dict:
+    itens = [await _item_plano(n) for n in _para_plano(arvore)]
+    plano = SavePlan(itens=itens)
+    return {"acao": "plano_save", "resposta": _descreve_plano(plano), "plano": plano.model_dump()}
+
+
+async def _resolver_confirmacao(messages: list[dict], plano: SavePlan,
+                                arvore: list[EditNodeIn]) -> dict:
+    ultimo = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    try:
+        data = await llm.generate_json(ultimo, system=_CONFIRM_SYSTEM)
+        decisao = str(data.get("decisao", "")).strip().lower()
+    except llm.LLMError:
+        decisao = "ajustar"  # falha segura: nunca grava sem confirmar
+    if decisao == "confirmar":
+        return {"acao": "confirmado", "resposta": "Gravando…", "plano": plano.model_dump()}
+    if decisao == "cancelar":
+        return {"acao": "cancelado", "resposta": "Ok, não vou gravar."}
+    return await _propor_plano(arvore)  # ajustar: remonta a partir da árvore atual
+
+
+async def _resolver_proposta(messages: list[dict]) -> dict:
+    ultimo = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    try:
+        data = await llm.generate_json(ultimo, system=_CONFIRM_SYSTEM)
+        decisao = str(data.get("decisao", "")).strip().lower()
+    except llm.LLMError:
+        decisao = "cancelar"
+    if decisao == "confirmar":
+        return {"acao": "criar_no", "resposta": "Documento adicionado à árvore."}
+    return {"acao": "cancelado", "resposta": "Mantendo o documento atual."}
+
+
+async def assistente_arvore(messages: list[dict], arvore: list[EditNodeIn], foco: str | None,
+                            plano_pendente: SavePlan | None,
+                            proposta_pendente) -> dict:
+    """Turno do assistente ciente da árvore. Propõe — nunca grava (isso é o /docs/commit)."""
+    if plano_pendente is not None:
+        return await _resolver_confirmacao(messages, plano_pendente, arvore)
+    if proposta_pendente is not None:
+        return await _resolver_proposta(messages)
+
+    intent = await _classificar_intencao(messages)
+    if intent == "perguntar":
+        pergunta = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        res = await perguntar(pergunta)
+        return {"acao": "resposta", "resposta": res["resposta"], "fontes": res["fontes"]}
+    if intent == "salvar":
+        return await _propor_plano(arvore)
+
+    sugestao = await _detectar_novo_doc(messages, _no(arvore, foco))
+    if sugestao:
+        return {
+            "acao": "propor_novo_doc",
+            "resposta": f"Isso parece um novo documento (assunto: {sugestao['assunto']}). Criar?",
+            "sugestao": sugestao,
+        }
+
+    alvo = await _rotear_alvo(messages, arvore, foco)
+    no_alvo = _no(arvore, alvo)
+    resposta = await coautoria_chat(messages, contexto_doc=no_alvo.conteudo if no_alvo else None)
+    out = {"acao": "autoria", "alvo": alvo, "resposta": resposta}
+    drift = await _detectar_drift(no_alvo) if no_alvo else None
+    if drift:
+        out["drift"] = {"node_id": alvo, "assunto_sugerido": drift}
+    return out

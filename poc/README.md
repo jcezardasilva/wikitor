@@ -8,9 +8,12 @@ Demonstra os processos básicos: **navegar/consultar**, **atualizar manualmente*
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) para gerenciar dependências
+- Node 20+ (front-end React)
 - Ollama rodando em `http://localhost:11434` com um modelo (padrão: `gemma4:e2b`)
 
 ## Como rodar
+
+**Backend**
 
 ```powershell
 cd poc\backend
@@ -18,7 +21,25 @@ make install   # uv sync (deps de prod + dev)
 make run       # uvicorn app.main:app --reload --port 8000
 ```
 
-Abra http://localhost:8000
+**Front-end (React)** — o webapp é o front-end padrão (`poc/webapp`).
+
+- Desenvolvimento (hot reload, proxy `/api` -> `:8000`):
+
+  ```powershell
+  cd poc\webapp
+  npm install
+  npm run dev    # http://localhost:5173
+  ```
+
+- Produção (servido pelo próprio FastAPI a partir de `poc/webapp/dist`):
+
+  ```powershell
+  cd poc\webapp
+  npm run build  # gera dist/, que o backend serve em http://localhost:8000
+  ```
+
+Em dev, acesse http://localhost:5173; servindo o build pelo backend, http://localhost:8000.
+Veja `poc/webapp/README.md` para todos os comandos (`lint`, `test`, `test:e2e`, `check`).
 
 ### Comandos de desenvolvimento (`poc/backend/Makefile`)
 
@@ -50,7 +71,7 @@ poc/
   backend/skills/   instruções estilo SKILL.md usadas como system prompt (content-authoring.md)
   content/docs/     documentos markdown (fonte da verdade)
   content/indices/  índices derivados (_master.json, {assunto}.json)
-  web/              front-end estático (Assistente IA, Navegar, Editar)
+  webapp/           front-end React + Vite (Assistente IA, Navegar, Editar)
 ```
 
 ## Assistente IA unificado (uma conversa para tudo)

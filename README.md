@@ -49,20 +49,28 @@ Pré-requisitos:
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) para gerenciar dependências do backend
+- Node 20+ para o front-end React (`poc/webapp`)
 - [Ollama](https://ollama.com/) rodando em `http://localhost:11434` com um modelo
   baixado (padrão: `gemma4:e2b`)
 
 ```powershell
+# Backend
 cd poc\backend
 make install   # uv sync — instala dependências de prod + dev
 make run       # uvicorn app.main:app --reload --port 8000
+
+# Front-end (React) — em outro terminal
+cd poc\webapp
+npm install
+npm run dev    # http://localhost:5173 (proxy /api -> :8000)
 ```
 
-Abra http://localhost:8000 — a aba **Assistente IA** já abre conversando; **Navegar** lista
-os documentos existentes; **Editar** permite edição manual de markdown.
+Em dev, abra http://localhost:5173 — a aba **Assistente IA** já abre conversando; **Navegar**
+lista os documentos existentes; **Editar** permite edição manual de markdown. Para servir o
+front-end pelo próprio backend, rode `npm run build` no webapp e acesse http://localhost:8000.
 
-Veja [`poc/README.md`](poc/README.md) para a lista completa de variáveis de ambiente e dos
-comandos de desenvolvimento do backend (`make lint`, `make test`, `make complexity`, etc.).
+Veja [`poc/README.md`](poc/README.md) e [`poc/webapp/README.md`](poc/webapp/README.md) para a
+lista completa de variáveis de ambiente e dos comandos de desenvolvimento (backend e front-end).
 
 ## Estrutura do repositório
 
@@ -74,7 +82,7 @@ wikitor/
     backend/skills/                instruções estilo SKILL.md usadas como system prompt
     content/docs/                 documentos markdown (fonte da verdade)
     content/indices/              índices derivados (_master.json, {assunto}.json)
-    web/                          front-end estático (Assistente IA, Navegar, Editar)
+    webapp/                       front-end React + Vite (Assistente IA, Navegar, Editar)
 ```
 
 ## Documentação de design

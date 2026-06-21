@@ -68,4 +68,4 @@ async def generate_json(prompt: str, system: str | None = None) -> dict:
         start, end = raw.find("{"), raw.rfind("}")
         if start >= 0 and end > start:
             return json.loads(raw[start:end + 1])
-        raise LLMError(f"Resposta não-JSON do LLM: {raw[:200]}")
+        raise LLMError(f"Resposta não-JSON do LLM: {raw[:200]}") from None

@@ -10,8 +10,9 @@ CONTENT_ROOT = Path(os.getenv("Wikitor_CONTENT_ROOT", _REPO_ROOT / "poc" / "cont
 DOCS_DIR = CONTENT_ROOT / "docs"
 INDICES_DIR = CONTENT_ROOT / "indices"
 
-# Front-end estático servido pelo próprio FastAPI.
-WEB_DIR = Path(os.getenv("Wikitor_WEB_DIR", _REPO_ROOT / "poc" / "web"))
+# Front-end React (Vite) servido pelo próprio FastAPI a partir do build de produção.
+# Em dev, use `npm run dev` no webapp (proxy /api -> :8000); em prod, `npm run build`.
+WEB_DIR = Path(os.getenv("Wikitor_WEB_DIR", _REPO_ROOT / "poc" / "webapp" / "dist"))
 
 # Skills (instruções estilo SKILL.md usadas como system prompt do LLM).
 SKILLS_DIR = Path(os.getenv("Wikitor_SKILLS_DIR", _REPO_ROOT / "poc" / "backend" / "skills"))
