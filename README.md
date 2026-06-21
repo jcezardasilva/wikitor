@@ -4,10 +4,10 @@ Wiki de conhecimento baseada em documentos **Markdown**, com uma **cadeia de ín
 gerada por LLM** (master → assunto → nível de maturidade) e um **assistente conversacional**
 que responde perguntas (citando fontes) e conduz a autoria de novos documentos.
 
-> **Status atual:** existe uma **POC funcional** (`poc/`) — local, sem Azure, sem
-> autenticação, usando Ollama como LLM. O **design completo** (multitenant, Azure Storage,
-> AKS, MCP-server, controle de acesso) está documentado em `docs/design/` e ainda não foi
-> implementado.
+> **Status atual:** existe uma **implementação funcional em estágio de POC** — local, sem
+> Azure, sem autenticação, usando Ollama como LLM. O **design completo** (multitenant, Azure
+> Storage, AKS, MCP-server, controle de acesso) está documentado em `docs/design/` e ainda não
+> foi implementado.
 
 ![Demonstração do Wikitor: perguntar ao assistente e navegar pelos documentos](docs/wikitor-demo.gif)
 
@@ -49,18 +49,18 @@ Pré-requisitos:
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) para gerenciar dependências do backend
-- Node 20+ para o front-end React (`poc/webapp`)
+- Node 20+ para o front-end React (`webapp/`)
 - [Ollama](https://ollama.com/) rodando em `http://localhost:11434` com um modelo
   baixado (padrão: `gemma4:e2b`)
 
 ```powershell
 # Backend
-cd poc\backend
+cd backend
 make install   # uv sync — instala dependências de prod + dev
 make run       # uvicorn app.main:app --reload --port 8000
 
 # Front-end (React) — em outro terminal
-cd poc\webapp
+cd webapp
 npm install
 npm run dev    # http://localhost:5173 (proxy /api -> :8000)
 ```
@@ -69,20 +69,20 @@ Em dev, abra http://localhost:5173 — a aba **Assistente IA** já abre conversa
 lista os documentos existentes; **Editar** permite edição manual de markdown. Para servir o
 front-end pelo próprio backend, rode `npm run build` no webapp e acesse http://localhost:8000.
 
-Veja [`poc/README.md`](poc/README.md) e [`poc/webapp/README.md`](poc/webapp/README.md) para a
+Veja [`docs/README.md`](docs/README.md) e [`webapp/README.md`](webapp/README.md) para a
 lista completa de variáveis de ambiente e dos comandos de desenvolvimento (backend e front-end).
 
 ## Estrutura do repositório
 
 ```
 wikitor/
-  docs/design/                    documento de design completo + plano de implementação
-  poc/
-    backend/app/                  FastAPI: storage local, indexer (LLM), assistente, main
-    backend/skills/                instruções estilo SKILL.md usadas como system prompt
-    content/docs/                 documentos markdown (fonte da verdade)
-    content/indices/              índices derivados (_master.json, {assunto}.json)
-    webapp/                       front-end React + Vite (Assistente IA, Navegar, Editar)
+  docs/design/                  documento de design completo + plano de implementação
+  backend/app/                  FastAPI em onion architecture (domain/application/
+                                 infrastructure/presentation)
+  backend/skills/                instruções estilo SKILL.md usadas como system prompt
+  content/docs/                 documentos markdown (fonte da verdade)
+  content/indices/              índices derivados (_master.json, {assunto}.json)
+  webapp/                       front-end React + Vite (Assistente IA, Navegar, Editar)
 ```
 
 ## Documentação de design

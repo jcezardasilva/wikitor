@@ -301,5 +301,5 @@ plano de confirmação como item `tipo: remover|arquivar`).
   passou a mover para a lixeira. pytest cobre trash/list/restore/purge (cedo e após retenção).
 - Frontend: aba **Lixeira** (lista com dias restantes, restaurar, e "excluir definitivamente"
   habilitado só quando elegível); "excluir" na Navegar agora envia para a lixeira.
-- *Nota:* a lixeira é dados de runtime (`poc/content/trash/`, no `.gitignore`). Não há
+- *Nota:* a lixeira é dados de runtime (`content/trash/`, no `.gitignore`). Não há
   purge automático agendado — a exclusão definitiva é manual (e bloqueada antes dos 30 dias).
