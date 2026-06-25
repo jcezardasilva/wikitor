@@ -2,7 +2,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// API do backend FastAPI (POC). Em dev, o Vite faz proxy de /api para ela.
+// API do backend FastAPI. Em dev, o Vite faz proxy de /api para ela.
 const API_TARGET = process.env.WIKITOR_API ?? 'http://localhost:8000';
 
 export default defineConfig({

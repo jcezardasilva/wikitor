@@ -61,7 +61,7 @@ export function App() {
     <>
       <header className="app-header">
         <h1>
-          Wikitor <span className="tag">POC</span>
+          Wikitor
         </h1>
         {llm.info && (
           <button
