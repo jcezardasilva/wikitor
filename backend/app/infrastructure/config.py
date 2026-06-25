@@ -16,6 +16,9 @@ TRASH_RETENTION_DAYS = int(os.getenv("Wikitor_TRASH_RETENTION_DAYS", "30"))
 # Histórico de sessões do assistente — uma sessão por arquivo (ver chat_repository).
 CHATS_DIR = CONTENT_ROOT / "chats"
 
+# Settings de runtime (ex.: provedor de LLM ativo). Contém segredo (api_key) → fora do git.
+SETTINGS_DIR = CONTENT_ROOT / "settings"
+
 # Front-end React (Vite) servido pelo próprio FastAPI a partir do build de produção.
 # Em dev, use `npm run dev` no webapp (proxy /api -> :8000); em prod, `npm run build`.
 WEB_DIR = Path(os.getenv("Wikitor_WEB_DIR", _REPO_ROOT / "webapp" / "dist"))
@@ -37,3 +40,4 @@ def ensure_dirs() -> None:
     INDICES_DIR.mkdir(parents=True, exist_ok=True)
     TRASH_DIR.mkdir(parents=True, exist_ok=True)
     CHATS_DIR.mkdir(parents=True, exist_ok=True)
+    SETTINGS_DIR.mkdir(parents=True, exist_ok=True)

@@ -12,7 +12,7 @@ from ..domain.entities import (
     MasterIndexEntry,
     SubjectIndex,
 )
-from ..infrastructure import config, document_repository, index_repository, ollama_client
+from ..infrastructure import config, document_repository, index_repository, llm
 
 _RESUMO_SYSTEM = (
     "Você resume documentos técnicos em português do Brasil. "
@@ -23,8 +23,8 @@ _RESUMO_SYSTEM = (
 async def gerar_resumo(titulo: str, conteudo: str) -> str:
     prompt = f"Título: {titulo}\n\nConteúdo:\n{conteudo[:4000]}\n\nResumo:"
     try:
-        return await ollama_client.generate(prompt, system=_RESUMO_SYSTEM)
-    except ollama_client.LLMError:
+        return await llm.generate(prompt, system=_RESUMO_SYSTEM)
+    except llm.LLMError:
         # POC: se o LLM falhar, não bloqueia o save.
         return conteudo.strip().split("\n", 1)[0][:160]
 

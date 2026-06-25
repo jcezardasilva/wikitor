@@ -19,6 +19,9 @@ __pycache__/
 # Wikitor — lixeira (dados de runtime)
 content/trash/
 
+# Wikitor — settings de runtime (contém api_key)
+content/settings/
+
 # OS
 Thumbs.db
 .DS_Store

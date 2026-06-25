@@ -3,9 +3,22 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from ..application import assistant_service, chat_history_service, document_service
-from ..infrastructure import config
-from .schemas import AssistantRequest, CommitRequest, SaveDocRequest
+from ..application import (
+    assistant_service,
+    chat_history_service,
+    document_service,
+    llm_settings_service,
+)
+from ..infrastructure import config, settings_repository
+from ..infrastructure.llm.base import LLMConfig, LLMError
+from .schemas import (
+    AssistantRequest,
+    CommitRequest,
+    LLMModelsRequest,
+    LLMSettingsOut,
+    LLMSettingsUpdate,
+    SaveDocRequest,
+)
 
 router = APIRouter()
 
@@ -127,6 +140,50 @@ def purge_trash_route(doc_id: str):
     return {"ok": True, "excluido": doc_id}
 
 
+# ---------- configuração de LLM (provedor ativo) ----------
+
+def _to_out(cfg: LLMConfig) -> LLMSettingsOut:
+    return LLMSettingsOut(
+        provider=cfg.provider,
+        base_url=cfg.base_url,
+        model=cfg.model,
+        api_key_masked=settings_repository.mask_api_key(cfg.api_key),
+        timeout=cfg.timeout,
+    )
+
+
+@router.get("/api/llm/settings", response_model=LLMSettingsOut)
+def get_llm_settings():
+    return _to_out(llm_settings_service.get_settings())
+
+
+@router.put("/api/llm/settings", response_model=LLMSettingsOut)
+def put_llm_settings(req: LLMSettingsUpdate):
+    try:
+        cfg = llm_settings_service.update_settings(req.model_dump(exclude_none=True))
+    except llm_settings_service.InvalidProvider as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return _to_out(cfg)
+
+
+@router.post("/api/llm/models")
+async def post_llm_models(req: LLMModelsRequest):
+    """Lista modelos do provedor usando os valores do formulário (ainda não salvos)."""
+    cfg = LLMConfig(
+        provider=req.provider, base_url=req.base_url, model="",
+        api_key=req.api_key, timeout=req.timeout,
+    )
+    try:
+        modelos = await llm_settings_service.list_models(cfg)
+    except llm_settings_service.InvalidProvider as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except LLMError as exc:  # provedor fora do ar / credencial inválida → erro claro (D5)
+        raise HTTPException(502, f"Não foi possível listar modelos: {exc}") from exc
+    return {"models": modelos}
+
+
 @router.get("/api/health")
 def health():
-    return {"ok": True, "model": config.OLLAMA_MODEL, "content": str(config.CONTENT_ROOT)}
+    cfg = llm_settings_service.get_settings()
+    return {"ok": True, "provider": cfg.provider, "model": cfg.model,
+            "content": str(config.CONTENT_ROOT)}

@@ -5,6 +5,8 @@ import type {
   AssistantTreeRequest,
   AssistantTreeResponse,
   CommitResponse,
+  LLMSettings,
+  LLMSettingsUpdate,
   MasterIndex,
   SaveDocRequest,
   SavePlan,
@@ -52,4 +54,13 @@ export const api = {
     request<{ ok: boolean }>(`/api/trash/${id}/restore`, { method: 'POST' }),
   purgeDocument: (id: string) =>
     request<{ ok: boolean }>(`/api/trash/${id}`, { method: 'DELETE' }),
+  getLlmSettings: () => request<LLMSettings>('/api/llm/settings'),
+  saveLlmSettings: (req: LLMSettingsUpdate) =>
+    request<LLMSettings>('/api/llm/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    }),
+  fetchModels: (provider: string, base_url: string, api_key?: string) =>
+    jsonPost<{ models: string[] }>('/api/llm/models', { provider, base_url, api_key }),
 };

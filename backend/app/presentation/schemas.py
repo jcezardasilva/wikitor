@@ -52,3 +52,31 @@ class AssistantRequest(BaseModel):
 
 class CommitRequest(BaseModel):
     plano: SavePlan
+
+
+# ---------- settings de LLM ----------
+
+class LLMSettingsUpdate(BaseModel):
+    """Entrada do PUT. `api_key` ausente/vazia = manter a chave atual."""
+    provider: str
+    base_url: str
+    model: str
+    api_key: str | None = None
+    timeout: float = 120.0
+
+
+class LLMSettingsOut(BaseModel):
+    """Saída: nunca expõe a api_key real, apenas uma máscara."""
+    provider: str
+    base_url: str
+    model: str
+    api_key_masked: str | None
+    timeout: float
+
+
+class LLMModelsRequest(BaseModel):
+    """Lista modelos usando valores ainda não salvos do formulário (Q2)."""
+    provider: str
+    base_url: str
+    api_key: str | None = None
+    timeout: float = 120.0

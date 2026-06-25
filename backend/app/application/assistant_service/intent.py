@@ -5,7 +5,7 @@ Compartilhado pelo fluxo legado (`legacy.py`) e pelo modo árvore (`tree_assista
 from __future__ import annotations
 
 from ...domain.entities import slugify
-from ...infrastructure import config, ollama_client
+from ...infrastructure import config, llm
 
 INTENT_SYSTEM = (
     "Você roteia mensagens em um assistente de wiki. Classifique a INTENÇÃO da última "
@@ -26,25 +26,25 @@ META_SYSTEM = (
 async def classificar_intencao(messages: list[dict]) -> str:
     convo = "\n".join(f"{m['role']}: {m['content']}" for m in messages[-6:])
     try:
-        data = await ollama_client.generate_json(
+        data = await llm.generate_json(
             f"Conversa:\n{convo}\n\nClassifique a última mensagem do usuário.",
             system=INTENT_SYSTEM,
         )
         intent = str(data.get("intencao", "")).strip().lower()
         if intent in {"perguntar", "autorar", "salvar"}:
             return intent
-    except ollama_client.LLMError:
+    except llm.LLMError:
         pass
     return "autorar"  # falha segura: nunca salva por engano; no máximo faz uma pergunta
 
 
 async def inferir_meta(titulo: str, conteudo: str) -> tuple[str, str]:
     try:
-        data = await ollama_client.generate_json(
+        data = await llm.generate_json(
             f"Título: {titulo}\nConteúdo:\n{conteudo[:1500]}", system=META_SYSTEM
         )
         assunto = slugify(str(data.get("assunto") or "geral"))
         nivel = data.get("nivel") if data.get("nivel") in config.NIVEIS else "iniciante"
         return assunto, nivel
-    except ollama_client.LLMError:
+    except llm.LLMError:
         return "geral", "iniciante"

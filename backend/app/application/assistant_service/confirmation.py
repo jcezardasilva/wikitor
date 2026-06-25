@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ...domain.entities import EditNodeIn, SavePlan
-from ...infrastructure import ollama_client
+from ...infrastructure import llm
 from . import plan_builder, tree_routing
 
 CONFIRM_SYSTEM = (
@@ -16,9 +16,9 @@ async def resolver_confirmacao(messages: list[dict], plano: SavePlan,
                                arvore: list[EditNodeIn]) -> dict:
     ultimo = await tree_routing.ultimo_user(messages)
     try:
-        data = await ollama_client.generate_json(ultimo, system=CONFIRM_SYSTEM)
+        data = await llm.generate_json(ultimo, system=CONFIRM_SYSTEM)
         decisao = str(data.get("decisao", "")).strip().lower()
-    except ollama_client.LLMError:
+    except llm.LLMError:
         decisao = "ajustar"  # falha segura: nunca grava sem confirmar
     if decisao == "confirmar":
         return {"acao": "confirmado", "resposta": "Gravando…", "plano": plano.model_dump()}
@@ -30,9 +30,9 @@ async def resolver_confirmacao(messages: list[dict], plano: SavePlan,
 async def resolver_proposta(messages: list[dict]) -> dict:
     ultimo = await tree_routing.ultimo_user(messages)
     try:
-        data = await ollama_client.generate_json(ultimo, system=CONFIRM_SYSTEM)
+        data = await llm.generate_json(ultimo, system=CONFIRM_SYSTEM)
         decisao = str(data.get("decisao", "")).strip().lower()
-    except ollama_client.LLMError:
+    except llm.LLMError:
         decisao = "cancelar"
     if decisao == "confirmar":
         return {"acao": "criar_no", "resposta": "Documento adicionado à árvore."}

@@ -3,23 +3,27 @@ import { api } from './api';
 import { AssistView } from './components/AssistView';
 import { BrowseView } from './components/BrowseView';
 import { EditView } from './components/EditView';
+import { LLMSettings } from './components/LLMSettings';
 import { Sidebar } from './components/Sidebar';
 import { TrashView } from './components/TrashView';
 import { useAssistant } from './hooks/useAssistant';
+import { useLlmInfo } from './hooks/useLlmInfo';
 import { useWikiIndex } from './hooks/useWikiIndex';
 import type { WikiDocument } from './types';
 
-type View = 'assist' | 'browse' | 'edit' | 'trash';
+type View = 'assist' | 'browse' | 'edit' | 'trash' | 'settings';
 
 const TABS: { key: View; label: string }[] = [
   { key: 'assist', label: 'Assistente IA' },
   { key: 'browse', label: 'Navegar' },
   { key: 'edit', label: 'Editar' },
   { key: 'trash', label: 'Lixeira' },
+  { key: 'settings', label: 'Configurações' },
 ];
 
 export function App() {
   const index = useWikiIndex();
+  const llm = useLlmInfo();
   const [view, setView] = useState<View>('assist');
   const [browseDoc, setBrowseDoc] = useState<WikiDocument | null>(null);
   const [editSeed, setEditSeed] = useState<WikiDocument | null>(null);
@@ -59,6 +63,15 @@ export function App() {
         <h1>
           Wikitor <span className="tag">POC</span>
         </h1>
+        {llm.info && (
+          <button
+            className="llm-badge"
+            title={`Provedor: ${llm.info.provider} · Base: ${llm.info.base_url}`}
+            onClick={() => setView('settings')}
+          >
+            {llm.info.model || '(modelo não definido)'}
+          </button>
+        )}
         <nav>
           {TABS.map((t) => (
             <button
@@ -98,6 +111,7 @@ export function App() {
           )}
           {view === 'edit' && <EditView seed={editSeed} onSaved={onSaved} />}
           {view === 'trash' && <TrashView onChanged={index.reload} />}
+          {view === 'settings' && <LLMSettings onChanged={llm.reload} />}
         </section>
       </main>
     </>

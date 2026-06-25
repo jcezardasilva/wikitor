@@ -6,7 +6,7 @@ nó ela se aplica e se sinaliza remoção, novo documento ou deriva de assunto.
 from __future__ import annotations
 
 from ...domain.entities import EditNodeIn, slugify
-from ...infrastructure import config, ollama_client
+from ...infrastructure import config, llm
 from . import intent
 
 TARGET_SYSTEM = (
@@ -48,13 +48,13 @@ async def rotear_alvo(
     catalogo = "\n".join(f"- node_id={n.node_id} | [{n.assunto}] {n.titulo}" for n in arvore)
     ultimo = await ultimo_user(messages)
     try:
-        data = await ollama_client.generate_json(
+        data = await llm.generate_json(
             f"Documentos:\n{catalogo}\n\nMensagem: {ultimo}", system=TARGET_SYSTEM
         )
         nid = data.get("node_id")
         if any(n.node_id == nid for n in arvore):
             return nid
-    except ollama_client.LLMError:
+    except llm.LLMError:
         pass
     return foco or arvore[0].node_id
 
@@ -64,7 +64,7 @@ async def detectar_novo_doc(messages: list[dict], no_foco: EditNodeIn | None) ->
         return None
     ultimo = await ultimo_user(messages)
     try:
-        data = await ollama_client.generate_json(
+        data = await llm.generate_json(
             f"Documento em foco: assunto={no_foco.assunto}, titulo={no_foco.titulo}\n"
             f"Mensagem do usuário: {ultimo}",
             system=NEWDOC_SYSTEM,
@@ -77,7 +77,7 @@ async def detectar_novo_doc(messages: list[dict], no_foco: EditNodeIn | None) ->
             "titulo": str(data.get("titulo") or "Novo documento"),
             "nivel": nivel,
         }
-    except ollama_client.LLMError:
+    except llm.LLMError:
         return None
 
 
@@ -86,9 +86,9 @@ async def detectar_remocao(messages: list[dict], no_foco: EditNodeIn | None) -> 
         return None
     ultimo = await ultimo_user(messages)
     try:
-        data = await ollama_client.generate_json(ultimo, system=REMOCAO_SYSTEM)
+        data = await llm.generate_json(ultimo, system=REMOCAO_SYSTEM)
         acao = str(data.get("acao", "")).strip().lower()
-    except ollama_client.LLMError:
+    except llm.LLMError:
         return None
     return acao if acao in {"remover", "arquivar"} else None
 

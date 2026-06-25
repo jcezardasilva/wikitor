@@ -1,7 +1,7 @@
 """Geração e coautoria assistida de conteúdo (entrevista guiada por SKILL.md)."""
 from __future__ import annotations
 
-from ..infrastructure import config, frontmatter, ollama_client
+from ..infrastructure import config, frontmatter, llm
 
 _GEN_SYSTEM = (
     "Você é um redator técnico que escreve artigos de wiki em português do Brasil, "
@@ -22,7 +22,7 @@ async def gerar_rascunho(tema: str, nivel: str, instrucoes: str | None) -> dict:
         "Comece com um título em markdown (linha iniciando com '# '). "
         "Use seções, listas e exemplos. Responda apenas com o markdown."
     )
-    conteudo = (await ollama_client.generate(prompt, system=_GEN_SYSTEM)).strip()
+    conteudo = (await llm.generate(prompt, system=_GEN_SYSTEM)).strip()
     if conteudo.startswith("```"):
         conteudo = conteudo.strip("`").lstrip("markdown").lstrip("\n")
 
@@ -54,7 +54,7 @@ async def coautoria_chat(messages: list[dict], contexto_doc: str | None = None) 
         # primeira interação: deixa o modelo iniciar a entrevista
         inicio = "Quero criar/editar um documento. Comece a entrevista."
         messages = [{"role": "user", "content": inicio}]
-    return await ollama_client.chat(messages, system=_coautoria_system(contexto_doc))
+    return await llm.chat(messages, system=_coautoria_system(contexto_doc))
 
 
 async def coautoria_finalizar(messages: list[dict], contexto_doc: str | None = None) -> dict:
@@ -66,7 +66,7 @@ async def coautoria_finalizar(messages: list[dict], contexto_doc: str | None = N
         "Responda apenas com o markdown."
     )
     msgs = list(messages) + [{"role": "user", "content": instrucao}]
-    conteudo = (await ollama_client.chat(msgs, system=_coautoria_system(contexto_doc))).strip()
+    conteudo = (await llm.chat(msgs, system=_coautoria_system(contexto_doc))).strip()
     if conteudo.startswith("```"):
         conteudo = conteudo.strip("`").lstrip("markdown").lstrip("\n")
     titulo = ""

@@ -5,7 +5,7 @@ escolhe os documentos relevantes e responde com base no markdown completo, citan
 """
 from __future__ import annotations
 
-from ..infrastructure import document_repository, index_repository, ollama_client
+from ..infrastructure import document_repository, index_repository, llm
 
 _PICK_SYSTEM = (
     "Você seleciona documentos relevantes para responder uma pergunta. "
@@ -47,7 +47,7 @@ async def perguntar(pergunta: str) -> dict:
     catalogo = "\n".join(
         f"- id={e['id']} | [{e['nivel']}] {e['titulo']}: {e['resumo']}" for e in entradas
     )
-    pick = await ollama_client.generate_json(
+    pick = await llm.generate_json(
         f"Índice da wiki:\n{catalogo}\n\nPergunta: {pergunta}",
         system=_PICK_SYSTEM,
     )
@@ -68,7 +68,7 @@ async def perguntar(pergunta: str) -> dict:
 
     # Etapa 3 — responder com base no conteúdo.
     contexto = "\n\n---\n\n".join(contexto_blocos)
-    resposta = await ollama_client.generate(
+    resposta = await llm.generate(
         f"Documentos:\n{contexto}\n\nPergunta: {pergunta}\n\nResposta:",
         system=_ANSWER_SYSTEM,
     )

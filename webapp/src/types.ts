@@ -183,3 +183,24 @@ export interface TrashList {
 export interface CommitResponse {
   salvos: SavedRef[];
 }
+
+// ---------- Configuração de provedor de LLM ----------
+
+export type LLMProvider = 'ollama' | 'openai_compatible';
+
+export interface LLMSettings {
+  provider: LLMProvider;
+  base_url: string;
+  model: string;
+  api_key_masked: string | null;
+  timeout: number;
+}
+
+// Enviado ao PUT; api_key vazia = manter a atual.
+export interface LLMSettingsUpdate {
+  provider: LLMProvider;
+  base_url: string;
+  model: string;
+  api_key?: string;
+  timeout?: number;
+}
